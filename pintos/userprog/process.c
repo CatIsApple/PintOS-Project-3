@@ -22,7 +22,7 @@
 #include "threads/synch.h"
 #include "lib/kernel/list.h"
 #include "threads/malloc.h"
-
+#include "vm/file.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -899,10 +899,24 @@ install_page (void *upage, void *kpage, bool writable) {
  * upper block. */
 
 static bool
-lazy_load_segment (struct page *page, void *aux) {
-	/* TODO: Load the segment from the file */
-	/* TODO: This called when the first page fault occurs on address VA. */
-	/* TODO: VA is available when calling this function. */
+lazy_load_segment (struct page *page, void *aux_) {
+	struct load_aux *aux = (struct load_aux *)aux_;
+	struct file *file = aux->file;
+	off_t ofs = aux->ofs;
+	uint32_t read_bytes = aux->read_bytes;
+	uint32_t zero_bytes = aux->zero_bytes;
+
+	free(aux);
+
+	file_seek(file, ofs);
+
+	if(file_read(file, page->frame->kva, read_bytes) != (int)read_bytes){
+		return false;
+	}
+
+	memset(page->frame->kva, 0, zero_bytes);
+	
+	return true;
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -934,7 +948,12 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		void *aux = NULL;
+		struct load_aux *aux = malloc(sizeof(struct load_aux));
+		aux->file = file;
+		aux->ofs = ofs;
+		aux->read_bytes = read_bytes;
+		aux->zero_bytes = zero_bytes;
+
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, aux))
 			return false;

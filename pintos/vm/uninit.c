@@ -24,15 +24,16 @@ static const struct page_operations uninit_ops = {
 
 /* DO NOT MODIFY this function */
 void
-uninit_new (struct page *page, void *va, vm_initializer *init,
+uninit_new (struct page *page, void *va, bool writable, vm_initializer *init,
 		enum vm_type type, void *aux,
-		bool (*initializer)(struct page *, enum vm_type, void *)) {
+		bool (*initializer)(struct page *, enum vm_type, void *kva)) {
 	ASSERT (page != NULL);
 
 	*page = (struct page) {
 		.operations = &uninit_ops,
 		.va = va,
 		.frame = NULL, /* no frame for now */
+		.writable = writable,
 		.uninit = (struct uninit_page) {
 			.init = init,
 			.type = type,
@@ -52,8 +53,7 @@ uninit_initialize (struct page *page, void *kva) {
 	void *aux = uninit->aux;
 
 	/* TODO: You may need to fix this function. */
-	return uninit->page_initializer (page, uninit->type, kva) &&
-		(init ? init (page, aux) : true);
+	return uninit->page_initializer (page, uninit->type, kva) && (init ? init (page, aux) : true);
 }
 
 /* Free the resources hold by uninit_page. Although most of pages are transmuted

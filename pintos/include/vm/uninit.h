@@ -18,7 +18,7 @@ struct uninit_page {
 	bool (*page_initializer) (struct page *, enum vm_type, void *kva);
 };
 
-void uninit_new (struct page *page, void *va, vm_initializer *init,
+void uninit_new (struct page *page, void *va, bool writable, vm_initializer *init,
 		enum vm_type type, void *aux,
 		bool (*initializer)(struct page *, enum vm_type, void *kva));
 #endif
