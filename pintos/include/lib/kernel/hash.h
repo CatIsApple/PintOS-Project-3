@@ -39,6 +39,8 @@ struct hash_elem {
 	((STRUCT *) ((uint8_t *) &(HASH_ELEM)->list_elem        \
 		- offsetof (STRUCT, MEMBER.list_elem)))
 
+// list_elem에서 본인이 속한 hash_elem을 알기위한 매크로.
+
 /* Computes and returns the hash value for hash element E, given
  * auxiliary data AUX. */
 typedef uint64_t hash_hash_func (const struct hash_elem *e, void *aux);

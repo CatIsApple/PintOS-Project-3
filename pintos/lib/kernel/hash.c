@@ -23,7 +23,7 @@ static void rehash (struct hash *);
    compare hash elements using LESS, given auxiliary data AUX. */
 bool
 hash_init (struct hash *h,
-		hash_hash_func *hash, hash_less_func *less, void *aux) {
+		hash_hash_func *hash, hash_less_func *less, void *aux UNUSED) {
 	h->elem_cnt = 0;
 	h->bucket_cnt = 4;
 	h->buckets = malloc (sizeof *h->buckets * h->bucket_cnt);
@@ -275,7 +275,7 @@ uint64_t
 hash_int (int i) {
 	return hash_bytes (&i, sizeof i);
 }
-
+
 /* Returns the bucket in H that E belongs in. */
 static struct list *
 find_bucket (struct hash *h, struct hash_elem *e) {
@@ -294,8 +294,8 @@ find_elem (struct hash *h, struct list *bucket, struct hash_elem *e) {
 		if (!h->less (hi, e, h->aux) && !h->less (e, hi, h->aux))
 			return hi;
 	}
-	return NULL;
-}
+	return NULL;	
+} // less 함수를 사용하여, 특정 hash_elem을 찾기 위한 함수.
 
 /* Returns X with its lowest-order bit set to 1 turned off. */
 static inline size_t
