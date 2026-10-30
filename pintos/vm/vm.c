@@ -238,8 +238,11 @@ vm_get_frame (void) {
 }
 
 /* Growing the stack. */
-static void
+static bool
 vm_stack_growth (void *addr UNUSED) {
+	void *va = pg_round_down(addr);
+	if(!vm_alloc_page(VM_ANON, va, true)) return false;
+	return vm_claim_page(va);
 }
 
 /* Handle the fault on write_protected page */
@@ -283,18 +286,30 @@ vm_handle_wp (struct page *page UNUSED) {
 
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED, bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
-	if(not_present){
-		struct supplemental_page_table *spt = &thread_current()->spt;
-		struct page *page = spt_find_page(spt, addr);
-
-		if(!page){
-			return false;
+	if (!not_present || addr ==NULL) return false;
+	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
+	struct page *page = spt_find_page(spt, addr);
+	if (!page)
+	{
+		if (user)
+		{
+			if ((uintptr_t) addr < USER_STACK && (uintptr_t) addr >= (USER_STACK - (1UL << 20)) && (uintptr_t) addr >= (f->rsp) - 8)
+			{
+				return vm_stack_growth(addr);
+			}
+			else return false;
 		}
-
-		return vm_do_claim_page(page);
+		else
+		{
+			if ((uintptr_t) addr < USER_STACK && (uintptr_t) addr >= (USER_STACK - (1UL << 20)) && (uintptr_t) addr >= (thread_current()->rsp) - 8)
+			{
+				return vm_stack_growth(addr);
+			}
+			else return false;
+		}
 	}
-
-	return false;
+	
+	return vm_claim_page (addr);
 }
 
 /* Free the page.

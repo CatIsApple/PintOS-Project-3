@@ -139,8 +139,10 @@ page_fault (struct intr_frame *f) {
 	not_present = (f->error_code & PF_P) == 0; // 0이면 페이지가 아예 없음, 1이면 페이지는 있는데 권한 없음
 	write = (f->error_code & PF_W) != 0; // 0이면 읽기 중 폴트, 1이면 쓰기 중 폴트
 	user = (f->error_code & PF_U) != 0; // 0이면 커널모드 폴트, 1이면 유저 모드 폴트
+
 	
-	#ifdef VM
+
+#ifdef VM
 	/* For project 3 and later. */
 	// printf("[exception_page_fault] TRY page_fault fault_addr: %p\n", (void *) rcr2());
 	if (vm_try_handle_fault (f, fault_addr, user, write, not_present))
