@@ -17,8 +17,8 @@ enum vm_type {
 
 	/* Bit flags to store state */
 
-	/* Auxillary bit flag marker for store information. You can add more
-	 * markers, until the value is fit in the int. */
+	/* 저장 정보를 위한 보조 비트 플래그 마커입니다. 값이 int형에 들어갈 수 있을 때까지
+  * 마커를 더 추가할 수 있습니다. */
 	VM_MARKER_0 = (1 << 3),
 	VM_MARKER_1 = (1 << 4),
 
@@ -83,7 +83,7 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
-	struct hash *hash;
+	struct hash hash;
 };
 
 struct load_aux{
