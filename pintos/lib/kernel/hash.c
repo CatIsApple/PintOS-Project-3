@@ -121,6 +121,7 @@ hash_replace (struct hash *h, struct hash_elem *new) {
    null pointer if no equal element exists in the table. */
 struct hash_elem *
 hash_find (struct hash *h, struct hash_elem *e) {
+	// printf("[hash_find] TRY hash_find(); hash : %p, hash_elem : %p\n", h, e);
 	return find_elem (h, find_bucket (h, e), e);
 }
 
@@ -279,12 +280,34 @@ hash_int (int i) {
 /* Returns the bucket in H that E belongs in. */
 static struct list *
 find_bucket (struct hash *h, struct hash_elem *e) {
+	// printf("[find_bucket] TRY find_bucket(); hash : %p, hash_elem : %p\n", h, e);
+	ASSERT(h != NULL);
 	size_t bucket_idx = h->hash (e, h->aux) & (h->bucket_cnt - 1);
+	// if (bucket_idx == 0)
+	// {
+	// 	printf("[find_bucket] FAIL bucket_idx == 0 value : %lu\n", bucket_idx);
+	// }
+	
+	// printf("[find_bucket] RETURN find_bucket(); bucket: %p, bucket_index %d\n", &h->buckets[bucket_idx], bucket_idx);
+
 	return &h->buckets[bucket_idx];
 }
 
-/* Searches BUCKET in H for a hash element equal to E.  Returns
-   it if found or a null pointer otherwise. */
+// /* Searches BUCKET in H for a hash element equal to E.  Returns
+//    it if found or a null pointer otherwise. */
+// static struct hash_elem *
+// find_elem (struct hash *h, struct list *bucket, struct hash_elem *e) {
+// 	struct list_elem *i;
+// 	printf("[find_elem] TRY find_elem(); hash : %p, bucket: %p, hash_elem : %p\n", h, bucket, e);
+// 	for (i = list_begin (bucket); i != list_end (bucket); i = list_next (i)) {
+// 		printf("[find_elem] TRY find_elem(); hash : %p, bucket: %p, hash_elem : %p\n", h, bucket, e);
+// 		struct hash_elem *hi = list_elem_to_hash_elem (i);
+// 		if (!h->less (hi, e, h->aux) && !h->less (e, hi, h->aux))
+// 			return hi;
+// 	}
+// 	return NULL;	
+// } // less 함수를 사용하여, 특정 hash_elem을 찾기 위한 함수.
+
 static struct hash_elem *
 find_elem (struct hash *h, struct list *bucket, struct hash_elem *e) {
 	struct list_elem *i;
@@ -294,8 +317,8 @@ find_elem (struct hash *h, struct list *bucket, struct hash_elem *e) {
 		if (!h->less (hi, e, h->aux) && !h->less (e, hi, h->aux))
 			return hi;
 	}
-	return NULL;	
-} // less 함수를 사용하여, 특정 hash_elem을 찾기 위한 함수.
+	return NULL;
+}
 
 /* Returns X with its lowest-order bit set to 1 turned off. */
 static inline size_t

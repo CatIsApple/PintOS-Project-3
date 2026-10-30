@@ -899,6 +899,12 @@ install_page (void *upage, void *kpage, bool writable) {
  * upper block. */
 
 static bool
+install_page (uint64_t *pml4, void *upage, void *kpage, bool writable) {
+	return (pml4_get_page (pml4, upage) == NULL
+			&& pml4_set_page (pml4, upage, kpage, writable));
+}
+
+static bool
 lazy_load_segment (struct page *page, void *aux_) {
 	struct load_aux *aux = (struct load_aux *)aux_;
 	struct file *file = aux->file;
@@ -906,15 +912,20 @@ lazy_load_segment (struct page *page, void *aux_) {
 	uint32_t read_bytes = aux->read_bytes;
 	uint32_t zero_bytes = aux->zero_bytes;
 
-	free(aux);
+	// file_seek(file, ofs);
 
-	file_seek(file, ofs);
+	// if(file_read(file, page->frame->kva, read_bytes) != (int)read_bytes){
+	// 	return false;
+	// }
 
-	if(file_read(file, page->frame->kva, read_bytes) != (int)read_bytes){
+	if (file_read_at(file, page->frame->kva, read_bytes, ofs)!=(int32_t)aux->read_bytes){
+		free(aux);
 		return false;
 	}
 
-	memset(page->frame->kva, 0, zero_bytes);
+	memset(page->frame->kva + read_bytes, 0, zero_bytes);
+
+	free(aux);
 	
 	return true;
 }
@@ -939,6 +950,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 	ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
 	ASSERT (pg_ofs (upage) == 0);
 	ASSERT (ofs % PGSIZE == 0);
+	struct supplemental_page_table *spt = &thread_current()->spt;
 
 	while (read_bytes > 0 || zero_bytes > 0) {
 		/* Do calculate how to fill this page.
@@ -951,32 +963,59 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		struct load_aux *aux = malloc(sizeof(struct load_aux));
 		aux->file = file;
 		aux->ofs = ofs;
-		aux->read_bytes = read_bytes;
-		aux->zero_bytes = zero_bytes;
+		aux->read_bytes = page_read_bytes;
+		aux->zero_bytes = page_zero_bytes;
 
+		// printf("load_segement %p\n", spt);
+		// printf("is kernel : %s\n", is_kernel_vaddr(spt) ? "yes" : "no");
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, aux))
-			return false;
+					writable, lazy_load_segment, aux)){
+						free(aux);
+						return false;
+					}
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
+		ofs += page_read_bytes;
 		upage += PGSIZE;
 	}
 	return true;
 }
 
-/* Create a PAGE of stack at the USER_STACK. Return true on success. */
+/* USER_STACK에 스택의 한 페이지(PAGE)를 생성합니다. 성공 시 true를 반환합니다. */
+// static bool
+// setup_stack (struct intr_frame *if_) {
+//     bool success = false;
+//     void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
+
+// 		struct page *kpage = malloc(sizeof(struct page));
+
+// 		if(!vm_alloc_page (VM_ANON | VM_MARKER_0, kpage, true)){
+// 			return success;
+// 		}
+
+// 		if (kpage != false) {
+// 			success = install_page (pml4, stack_bottom, kpage, true);
+// 			if (success)
+// 				if_->rsp = USER_STACK;
+// 			else
+// 				vm_dealloc_page(kpage);
+// 		}
+//     return success;
+// }
+
 static bool
 setup_stack (struct intr_frame *if_) {
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
-
-	/* TODO: Map the stack on stack_bottom and claim the page immediately.
-	 * TODO: If success, set the rsp accordingly.
-	 * TODO: You should mark the page is stack. */
-	/* TODO: Your code goes here */
-
+	if (vm_alloc_page (VM_ANON | VM_MARKER_0, stack_bottom, true)) {
+		success = vm_claim_page (stack_bottom);
+		if (success) {
+			if_->rsp = USER_STACK;
+		}
+	}
 	return success;
 }
+
 #endif /* VM */
