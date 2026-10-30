@@ -101,7 +101,7 @@ struct thread {
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
-
+	uintptr_t rsp;
 	int original;
 	struct list donations;
 	struct list_elem donations_elem;

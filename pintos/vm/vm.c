@@ -143,8 +143,11 @@ vm_get_frame (void) {
 }
 
 /* Growing the stack. */
-static void
+static bool
 vm_stack_growth (void *addr UNUSED) {
+	void *va = pg_round_down(addr);
+	if(!vm_alloc_page(VM_ANON, va, true)) return false;
+	return vm_claim_page(va);
 }
 
 /* Handle the fault on write_protected page */
@@ -155,6 +158,29 @@ vm_handle_wp (struct page *page UNUSED) {
 /* Return true on success */
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED, bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
+	if (!not_present || addr ==NULL) return false;
+	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
+	struct page *page = spt_find_page(spt, addr);
+	if (page == NULL)
+	{
+		if (user)
+		{
+			if ((uintptr_t) addr < USER_STACK && (uintptr_t) addr >= (USER_STACK - (1UL << 20)) && (uintptr_t) addr >= (f->rsp) - 8)
+			{
+				return vm_stack_growth(addr);
+			}
+			else return false;
+		}
+		else
+		{
+			if ((uintptr_t) addr < USER_STACK && (uintptr_t) addr >= (USER_STACK - (1UL << 20)) && (uintptr_t) addr >= (thread_current()->rsp) - 8)
+			{
+				return vm_stack_growth(addr);
+			}
+			else return false;
+		}
+	}
+	
 	return vm_claim_page (addr);
 }
 
@@ -215,7 +241,7 @@ page_less (const struct hash_elem *a_,
 
 void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
-	struct hash *pages;
+	struct hash *pages = malloc(sizeof(*spt->hash));
 	if(!hash_init (pages, page_hash, page_less, NULL)) exit(-1);
 	spt->hash = pages;
 }
