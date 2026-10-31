@@ -142,11 +142,12 @@ hash_delete (struct hash *h, struct hash_elem *e) {
 	return found;
 }
 
-/* 해시 테이블 H의 각 요소에 대해 ACTION을 임의의 순서로 호출한다.
-   hash_apply()가 실행되는 동안 hash_clear(), hash_destroy(), hash_insert(), hash_replace(), 
-   또는 hash_delete()와 같은 함수를 사용하여 해시 테이블 H를 수정하는 경우(ACTION 내부에서든 다른 곳에서든 상관없이), 
-   그 결과는 정의되지 않은 동작(undefined behavior)을 초래한다. 
-*/
+/* Calls ACTION for each element in hash table H in arbitrary
+   order.
+   Modifying hash table H while hash_apply() is running, using
+   any of the functions hash_clear(), hash_destroy(),
+   hash_insert(), hash_replace(), or hash_delete(), yields
+   undefined behavior, whether done from ACTION or elsewhere. */
 void
 hash_apply (struct hash *h, hash_action_func *action) {
 	size_t i;
@@ -191,13 +192,14 @@ hash_first (struct hash_iterator *i, struct hash *h) {
 	i->elem = list_elem_to_hash_elem (list_head (i->bucket));
 }
 
-/* 해시 테이블 내의 다음 요소로 이동하여 해당 요소를 반환합니다.
-   남은 요소가 없으면 널 포인터(null pointer)를 반환합니다.
-   요소들은 임의의 순서로 반환됩니다.
+/* Advances I to the next element in the hash table and returns
+   it.  Returns a null pointer if no elements are left.  Elements
+   are returned in arbitrary order.
 
-   순회 중에 hash_clear(), hash_destroy(), hash_insert(),
-   hash_replace(), 또는 hash_delete() 함수를 사용하여
-   해시 테이블 H를 수정하면, 모든 반복자(iterator)는 무효화됩니다. */
+   Modifying a hash table H during iteration, using any of the
+   functions hash_clear(), hash_destroy(), hash_insert(),
+   hash_replace(), or hash_delete(), invalidates all
+   iterators. */
 struct hash_elem *
 hash_next (struct hash_iterator *i) {
 	ASSERT (i != NULL);

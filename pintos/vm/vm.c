@@ -381,55 +381,17 @@ supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 	// spt->hash = pages;
 }
 
-hash_action_func * spt_copy_page(struct hash_iterator* i, struct supplemental_page_table *dst)
-{
-		struct hash_elem *e = hash_cur(&i);
-		struct page *page = hash_entry(e, struct page, hash_elem);
-		if (page->frame != NULL) {
-			void *aux = malloc(sizeof(page->uninit.aux));
-			aux = memcpy(aux, page->uninit.aux, sizeof(page->uninit.aux));
-			vm_alloc_page(page_get_type(page), page->va, true);
-			struct page *find_page = spt_find_page(dst, page->va);
-			if (!vm_claim_page(find_page->va)) {
-				return false;
-			}
-			page->frame->kva = memcpy(find_page->frame->kva, page->frame->kva, sizeof(struct frame));
-		}
-		else
-		{
-			void *aux = malloc(sizeof(page->uninit.aux));
-			aux = memcpy(aux, page->uninit.aux, sizeof(page->uninit.aux));
-			vm_alloc_page_with_initializer(page_get_type(page), page->va, page->writable, page->uninit.init, aux);
-		}
-}
-
 /* Copy supplemental page table from src to dst */
 bool
 supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		struct supplemental_page_table *src UNUSED) {
-
-	struct hash_iterator i;
-	hash_first(&i, &src->hash); 
-	hash_apply(&src->hash, spt_copy_page(&i, dst));
-}
-
-hash_action_func * spt_destroy_page(struct hash_elem *e, void *aux UNUSED)
-{
-	struct page *page = hash_entry(e, struct page, hash_elem);
-	vm_dealloc_page(page);
 }
 
 /* Free the resource hold by the supplemental page table */
-
-/* 
-	TODO: 스레드가 보유한 모든 supplemental_page_table을 파괴하고,
-	TODO: 수정된 모든 내용을 저장소에 다시 기록(writeback)한다.
-*/
 void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
-	struct hash_iterator i;
-	hash_first(&i, &spt->hash); 
-	hash_apply(&spt->hash, spt_destroy_page(&i, spt));
+	/* TODO: Destroy all the supplemental_page_table hold by thread and
+	 * TODO: writeback all the modified contents to the storage. */  
 }
 
 void frame_init() // 여기도 끝난거같은디염
