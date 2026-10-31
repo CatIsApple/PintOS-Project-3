@@ -96,7 +96,7 @@ struct load_aux{
 struct frame {
 	void *kva;
 	struct page *page;
-  	struct list_elem elem;
+  struct list_elem elem;
 };
 
 void frame_init();

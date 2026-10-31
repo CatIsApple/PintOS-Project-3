@@ -70,11 +70,9 @@ list_begin (struct list *list) {
 	return list->head.next;
 }
 
-/* 
-	리스트 내에서 ELEM 다음의 요소를 반환한다. 
-	ELEM이 리스트의 마지막 요소인 경우, 리스트의 테일(tail)을 반환한다.
-	ELEM 자체가 리스트의 테일인 경우, 결과는 정의되지 않는다. 
-*/
+/* Returns the element after ELEM in its list.  If ELEM is the
+   last element in its list, returns the list tail.  Results are
+   undefined if ELEM is itself a list tail. */
 struct list_elem *
 list_next (struct list_elem *elem) {
 	ASSERT (is_head (elem) || is_interior (elem));
