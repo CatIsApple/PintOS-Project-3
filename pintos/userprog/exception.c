@@ -151,6 +151,7 @@ page_fault (struct intr_frame *f) {
 
 	if (user) {
 		printf("ERROR #11 FAILED\n");
+		printf("faulf_addr : %p\n", fault_addr);
 		exit(-1);
 	}
 	

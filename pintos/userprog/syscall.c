@@ -22,7 +22,7 @@ void syscall_handler (struct intr_frame *);
 
 static struct lock file_lock; 
 static void check_buffer (const void *buffer, unsigned size);
-static bool check_address(const char *file);
+static bool check_address(void *file);
 static struct file *fd_to_file (int fd);
 static bool check_file(const char *file);
 /* System call.
@@ -127,15 +127,31 @@ syscall_handler (struct intr_frame *f) {
 	}
 }
 
-static bool check_address(const char *file)
+static bool check_address(void *ptr)
 {	
-	if (file == NULL) return false;
-	#ifdef USERPROG
-		struct thread *t = thread_current();
-		if (!is_user_vaddr(file)) return false;
-		if (pml4_get_page(t->pml4, file) == NULL) return false;
-		return true;
-	#endif
+	if (ptr == NULL) return false;
+	// #ifdef USERPROG
+	// 	struct thread *t = thread_current();
+	// 	if (!is_user_vaddr(ptr)) {
+	// 		// printf("check_address !is_user_vaddr(file)\n");
+	// 		return false;	
+	// 	}
+	// 	if (pml4_get_page(t->pml4, ptr) == NULL) {
+	// 		return;
+	// 	}
+	// 	return true;
+	// #endif
+
+	struct thread *t = thread_current();
+	if (!is_user_vaddr(ptr)) {
+		// printf("check_address !is_user_vaddr(file)\n");
+		return false;	
+	}
+	if(spt_find_page(&t->spt, ptr) == NULL) {
+		// printf("check_address spt : %p, ptr : %p, result = %s\n", &t->spt, ptr, spt_find_page(&t->spt, ptr) ? "yes" : "NULL");
+		return false;
+	}
+	return true;
 }
 
 void
@@ -224,7 +240,7 @@ bool
 create (const char *file, unsigned initial_size){
 	if (!check_address(file))
 	{
-		printf("ERROR #4 FAILED\n");
+		// printf("ERROR #4 FAILED\n");
 		exit(-1); 
 	}
 	lock_acquire(&file_lock);
@@ -461,9 +477,17 @@ check_buffer (const void *buffer, unsigned size) {
 			printf("ERROR #8 FAILED\n");
 			exit (-1);
 		}
-		if (pml4_get_page (pml4, p) == NULL){
-			printf("ERROR #9 FAILED\n");
-			exit (-1);
+		// if (pml4_get_page (pml4, p) == NULL){
+		// 	printf("ERROR #9 FAILED\n");
+		// 	exit (-1);
+		// }
+		if (pml4_get_page(pml4, p) == NULL) {
+			return;
+		}
+
+		if(spt_find_page(&thread_current ()->spt, p) == NULL) {
+			// printf("check_address spt : %p, ptr : %p, result = %s\n", &t->spt, ptr, spt_find_page(&t->spt, ptr) ? "yes" : "NULL");
+			return false;
 		}
 	}
 }
