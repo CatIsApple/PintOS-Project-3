@@ -388,37 +388,102 @@ supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 	// spt->hash = pages;
 }
 
-
-/* Copy supplemental page table from src to dst */
 bool
-supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
-		struct supplemental_page_table *src UNUSED) {
+supplemental_page_table_copy (struct supplemental_page_table *dst,
+                              struct supplemental_page_table *src) {
+    struct hash_iterator i;
+    hash_first (&i, &src->hash);
+
+    while (hash_next (&i)) {
+        struct hash_elem *e = hash_cur (&i);
+        struct page *page = hash_entry (e, struct page, hash_elem);
+
+		//swap out 상태에서는 프레임에 없으니 조건문 수정
+        if (page->operations->type != VM_UNINIT) {
+			//vm_alloc_page_with_initializer 함수에서는 부모 spt에 page 를 추가하기 때문에 직접 페이지 생성하고 자식 페이지에 추가
+
+            struct page *new_page = malloc (sizeof (struct page));
+            if (new_page == NULL)
+                return false;
+
+            enum vm_type type = page->operations->type;
+            bool (*initializer)(struct page *, enum vm_type, void *);
+            initializer = (VM_TYPE (type) == VM_ANON) ? anon_initializer : file_backed_initializer;
+
+            uninit_new (new_page, page->va, page->writable, NULL, type, NULL, initializer);
+
+            if (!spt_insert_page (dst, new_page)) {
+                free (new_page);
+                return false;
+            }
+
+            if (!vm_do_claim_page (new_page))
+                return false;
+
+            memcpy (new_page->frame->kva, page->frame->kva, PGSIZE);
+        }
+        else {
+            void *aux = NULL;
+            if (page->uninit.aux != NULL) {
+                aux = malloc (sizeof (struct load_aux));
+				//aux 가 처음부터 NULL인 상황 추가
+                if (aux == NULL)
+                    return false;
+                memcpy (aux, page->uninit.aux, sizeof (struct load_aux));
+            }
+
+            struct page *new_page = malloc (sizeof (struct page));
+            if (new_page == NULL) {
+                if (aux) free (aux);
+                return false;
+            }
+
+            bool (*initializer)(struct page *, enum vm_type, void *);
+            initializer = (VM_TYPE (page->uninit.type) == VM_ANON) ? anon_initializer : file_backed_initializer;
+
+            uninit_new (new_page, page->va, page->writable, page->uninit.init,
+                        page->uninit.type, aux, initializer);
+
+            if (!spt_insert_page (dst, new_page)) {
+                free (new_page);
+                if (aux) free (aux);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// /* Copy supplemental page table from src to dst */
+// bool
+// supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
+// 		struct supplemental_page_table *src UNUSED) {
 
 
 			
-	struct hash_iterator i;
-	hash_first(&i, &src->hash); 
-	while (hash_next(&i))
-	{
-		struct hash_elem *e = hash_cur(&i);
-		struct page *page = hash_entry(e, struct page, hash_elem);
-		if (page->frame != NULL) {
-			vm_alloc_page(page->operations->type, page->va, page->writable);
-			struct page *find_page = spt_find_page(dst, page->va);
-			if (!vm_claim_page(find_page->va)) {
-				return false;
-			}
-			memcpy(find_page->frame->kva, page->frame->kva, PGSIZE);
-		}
-		else
-		{
-			void *aux = malloc(sizeof(struct load_aux));
-			memcpy(aux, page->uninit.aux, sizeof(struct load_aux));
-			vm_alloc_page_with_initializer(page->uninit.type, page->va, page->writable, page->uninit.init, aux);
-		}
-	}
-	return true;
-}
+// 	struct hash_iterator i;
+// 	hash_first(&i, &src->hash); 
+// 	while (hash_next(&i))
+// 	{
+// 		struct hash_elem *e = hash_cur(&i);
+// 		struct page *page = hash_entry(e, struct page, hash_elem);
+// 		if (page->frame != NULL) {
+// 			vm_alloc_page(page->operations->type, page->va, page->writable);
+// 			struct page *find_page = spt_find_page(dst, page->va);
+// 			if (!vm_claim_page(find_page->va)) {
+// 				return false;
+// 			}
+// 			memcpy(find_page->frame->kva, page->frame->kva, PGSIZE);
+// 		}
+// 		else
+// 		{
+// 			void *aux = malloc(sizeof(struct load_aux));
+// 			memcpy(aux, page->uninit.aux, sizeof(struct load_aux));
+// 			m_alloc_page_with_initializer(page->uninit.type, page->va, page->writable, page->uninit.init, aux);
+// 		}
+// 	}
+// 	return true;
+// }
 
 hash_action_func * spt_destroy_page(struct hash_elem *e, void *aux UNUSED)
 {
