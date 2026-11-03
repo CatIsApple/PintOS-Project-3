@@ -434,16 +434,9 @@ hash_action_func * spt_destroy_page(struct hash_elem *e, void *aux UNUSED)
 */
 void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
-	struct hash_iterator i;
-	hash_first(&i, &spt->hash); 
-	struct hash_elem *e = hash_next(&i);
-	while (e)
-	{
-		struct page *page = hash_entry(e, struct page, hash_elem);
-		e = hash_next(&i);
-		vm_dealloc_page(page);
-	}
-	hash_clear(&spt->hash, NULL);
+	// struct hash_iterator i;
+	// hash_first(&i, &spt->hash); 
+	// hash_apply(&spt->hash, spt_destroy_page(&i, spt));
 }
 
 void frame_init() // 여기도 끝난거같은디염
