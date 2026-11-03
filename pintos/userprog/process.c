@@ -911,21 +911,27 @@ lazy_load_segment (struct page *page, void *aux_) {
 	off_t ofs = aux->ofs;
 	uint32_t read_bytes = aux->read_bytes;
 	uint32_t zero_bytes = aux->zero_bytes;
-
+	//printf("lazy_load: file=%p, offset=%d, read=%zu\n", aux->file, aux->ofs, aux->read_bytes); //이거 생성
 	// file_seek(file, ofs);
 
 	// if(file_read(file, page->frame->kva, read_bytes) != (int)read_bytes){
 	// 	return false;
 	// }
 
-	if (file_read_at(file, page->frame->kva, read_bytes, ofs)!=(int32_t)aux->read_bytes){
-		free(aux);
-		return false;
-	}
+    // 에러 방지 가드 추가
+	if (aux->read_bytes > 0) {
+        if (file_read_at (aux->file, page->frame->kva, aux->read_bytes, aux->ofs) != (int) aux->read_bytes) {
+            //palloc_free_page (page->frame->kva);
+            return false;
+        }
+    }
 
-	memset(page->frame->kva + read_bytes, 0, zero_bytes);
-
-	free(aux);
+    // 에러 방지 가드 추가
+    if (aux->zero_bytes > 0) {
+        memset (page->frame->kva + aux->read_bytes, 0, aux->zero_bytes);
+    }
+	
+	//free 삭제
 	
 	return true;
 }
@@ -950,6 +956,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 	ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
 	ASSERT (pg_ofs (upage) == 0);
 	ASSERT (ofs % PGSIZE == 0);
+	
 	struct supplemental_page_table *spt = &thread_current()->spt;
 
 	while (read_bytes > 0 || zero_bytes > 0) {

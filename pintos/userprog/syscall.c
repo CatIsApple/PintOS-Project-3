@@ -144,11 +144,9 @@ static bool check_address(void *ptr)
 
 	struct thread *t = thread_current();
 	if (!is_user_vaddr(ptr)) {
-		// printf("check_address !is_user_vaddr(file)\n");
 		return false;	
 	}
-	if(spt_find_page(&t->spt, ptr) == NULL) {
-		// printf("check_address spt : %p, ptr : %p, result = %s\n", &t->spt, ptr, spt_find_page(&t->spt, ptr) ? "yes" : "NULL");
+	if(spt_find_page(&t->spt, ptr) == NULL && pml4_get_page(t->pml4, ptr) == NULL) {
 		return false;
 	}
 	return true;
