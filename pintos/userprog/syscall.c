@@ -25,6 +25,7 @@ static void check_buffer (const void *buffer, unsigned size);
 static bool check_address(void *file);
 static struct file *fd_to_file (int fd);
 static bool check_file(const char *file);
+
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -118,6 +119,14 @@ syscall_handler (struct intr_frame *f) {
 
 		case SYS_DUP2:
 			f->R.rax = dup2((int)f->R.rdi, (int)f->R.rsi);
+			break;
+
+		case SYS_MMAP:
+			f->R.rax = mmap((void *)f->R.rdi, (unsigned long)f->R.rsi, (int)f->R.rdx, (int)f->R.r10, (unsigned)f->R.r8);
+			break;
+
+		case SYS_MUNMAP:
+			munmap((void *)f->R.rdi);
 			break;
 
 		default:
@@ -238,7 +247,7 @@ bool
 create (const char *file, unsigned initial_size){
 	if (!check_address(file))
 	{
-		// printf("ERROR #4 FAILED\n");
+		printf("ERROR #4 FAILED\n");
 		exit(-1); 
 	}
 	lock_acquire(&file_lock);
@@ -538,4 +547,22 @@ int dup2(int oldfd, int newfd){
 	c_fdt[newfd]->share++;
 
 	return newfd;
+}
+
+void *
+mmap (void *addr, unsigned long length, int writable, int fd, unsigned offset) {
+	if (fd < 0 || fd >= FILE_MAX)
+		return NULL;
+
+	struct file_descriptor *file_desc = thread_current ()->fdt[fd];
+
+	if (file_desc == NULL || file_desc->fT != FD_FILE || file_desc->file == NULL)
+		return NULL;
+
+	return do_mmap(addr, length, writable, file_desc->file, offset);
+}
+
+void
+munmap (void *addr) {
+	do_munmap(addr);
 }

@@ -140,8 +140,8 @@ enum fd_type
 
 struct file_descriptor {
 	enum fd_type fT;
-    struct file *file;      // 실제 파일 포인터 (stdin/stdout 식별용 특수 플래그/포인터 포함)
-    int share;          // 이 파일 엔트리를 참조하는 FD 개수
+	struct file *file;      // 실제 파일 포인터 (stdin/stdout 식별용 특수 플래그/포인터 포함)
+	int share;          // 이 파일 엔트리를 참조하는 FD 개수
 };
 
 /* If false (default), use round-robin scheduler.

@@ -904,7 +904,7 @@ install_page (uint64_t *pml4, void *upage, void *kpage, bool writable) {
 			&& pml4_set_page (pml4, upage, kpage, writable));
 }
 
-static bool
+bool
 lazy_load_segment (struct page *page, void *aux_) {
 	struct load_aux *aux = (struct load_aux *)aux_;
 	struct file *file = aux->file;
@@ -956,8 +956,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 	ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
 	ASSERT (pg_ofs (upage) == 0);
 	ASSERT (ofs % PGSIZE == 0);
-	
-	struct supplemental_page_table *spt = &thread_current()->spt;
+
 
 	while (read_bytes > 0 || zero_bytes > 0) {
 		/* Do calculate how to fill this page.

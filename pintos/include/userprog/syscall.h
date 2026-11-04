@@ -20,5 +20,7 @@ int write (int fd, const void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+void *mmap (void *addr, unsigned long length, int writable, int fd, unsigned offset);
+void munmap (void *addr);
 
 #endif /* userprog/syscall.h */

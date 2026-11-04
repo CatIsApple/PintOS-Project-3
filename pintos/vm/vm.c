@@ -519,7 +519,6 @@ void frame_init() // 여기도 끝난거같은디염
   // lock_init 필요
   //return &frame_table;
 }
-
 bool frame_insert(struct frame *f)
 {
   if (f == NULL) return false;

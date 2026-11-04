@@ -7,6 +7,10 @@ struct page;
 enum vm_type;
 
 struct file_page {
+	struct file *file;
+	off_t offset;
+	size_t length;      // 전체 매핑 길이: 시작 페이지에서 사용
+	size_t read_bytes;  // 현재 페이지의 유효한 파일 데이터 크기
 };
 
 void vm_file_init (void);
